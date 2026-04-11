@@ -1,14 +1,45 @@
 import streamlit as st
 import os
+import time
 import numpy as np
 import pandas as pd
 from PIL import Image
 from main import process_scan, contract, ipfs
+from dotenv import load_dotenv
+
+load_dotenv()
 
 st.set_page_config(page_title="MedScan AI Protocol", page_icon="🛡️", layout="wide")
 
 if 'active_tab' not in st.session_state:
     st.session_state['active_tab'] = "Home"
+
+st.sidebar.markdown("<h2 style='text-align: center;'>🏥 Network Node</h2>", unsafe_allow_html=True)
+st.sidebar.markdown("<p style='text-align: center; color: #94a3b8; font-size: 0.9rem;'>Simulate identity switching on the shared consortium ledger.</p>", unsafe_allow_html=True)
+
+hospital_directory = {
+    "Hospital A (Admin)": {
+        "address": os.getenv("HOSPITAL_A_ADDRESS"),
+        "key": os.getenv("HOSPITAL_A_KEY")
+    },
+    "Hospital B": {
+        "address": os.getenv("HOSPITAL_B_ADDRESS"),
+        "key": os.getenv("HOSPITAL_B_KEY")
+    },
+    "Hospital C": {
+        "address": os.getenv("HOSPITAL_C_ADDRESS"),
+        "key": os.getenv("HOSPITAL_C_KEY")
+    }
+}
+
+active_hospital = st.sidebar.selectbox("Select Active Identity:", list(hospital_directory.keys()))
+
+current_sender = hospital_directory[active_hospital]["address"]
+current_key = hospital_directory[active_hospital]["key"]
+
+st.sidebar.success(f"🟢 Connected as {active_hospital}")
+st.sidebar.markdown("---")
+st.sidebar.markdown("<div style='font-size: 0.8rem; color: #64748b;'>All hospitals interact with the same underlying smart contract, enforcing a single source of truth.</div>", unsafe_allow_html=True)
 
 st.markdown("""
 <style>
@@ -106,6 +137,28 @@ with tab_home:
     with f3: st.markdown('<div class="feature-card"><div style="font-size: 1.5rem; margin-bottom: 10px;">🏥</div><h4 style="color: white; margin-top:0;">Privacy First</h4><p style="color:#94a3b8;">Patient PII never leaves local storage. Only tamper-proof hashes are recorded on-chain.</p></div>', unsafe_allow_html=True)
 
     st.markdown("""
+<div style="background-color: #0b1120; border: 1px solid #1e293b; border-left: 4px solid #38bdf8; border-radius: 8px; padding: 1.5rem; margin-top: 2rem;">
+    <h4 style="color: #f8fafc; margin-top: 0; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+        🛡️ Enterprise Consortium Architecture
+    </h4>
+    <div style="display: flex; gap: 2rem; color: #94a3b8; font-size: 0.9rem;">
+        <div style="flex: 1;">
+            <strong style="color: #cbd5e1;">Consensus Mechanism:</strong> Proof of Authority (PoA)<br>
+            <span style="font-size: 0.8rem;">Simulated via local RPC node.</span>
+        </div>
+        <div style="flex: 1;">
+            <strong style="color: #cbd5e1;">Entry Validation:</strong> Smart Contract RBAC<br>
+            <span style="font-size: 0.8rem;">Only cryptographically signed transactions from whitelisted clinical addresses are accepted.</span>
+        </div>
+        <div style="flex: 1;">
+            <strong style="color: #cbd5e1;">51% Attack Defense:</strong> Immutable via Authority<br>
+            <span style="font-size: 0.8rem;">Sybil and 51% compute attacks are mitigated as validation rights are tied to verified institutional identity, not hash power.</span>
+        </div>
+    </div>
+</div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
 <div class="hiw-container">
     <div style="color: white; font-weight: 700; font-size: 1.2rem; margin-bottom: 2rem;">🟢 How It Works</div>
     <div style="display: flex; justify-content: space-between; text-align: center;">
@@ -151,15 +204,28 @@ with tab_upload:
                     st.error("Cannot process: Ganache is offline. Please start your local blockchain.")
                 else:
                     with st.spinner("Analyzing textures..."):
-                        verdict, conf, cid, tx_hash = process_scan(processing_path)
+                        verdict, conf, cid, tx_hash = process_scan(processing_path, current_sender, current_key)
+                        
                         if verdict:
-                            st.success("✅ Analysis Complete")
-                            upload_success_html = f"""<div class="stat-card" style="margin-top: 1rem; height: auto; color: #f8fafc; font-size: 1rem;">
+                            if verdict.lower() == 'fake':
+                                st.error("🚨 Fraud Attempt Detected & Logged")
+                                border_color = "#ef4444"
+                                title_html = '<h4 style="color: #ef4444; margin-top: 0; margin-bottom: 1rem;">🚨 Malicious Payload Captured</h4>'
+                            else:
+                                st.success("✅ Analysis Complete")
+                                border_color = "#334155"
+                                title_html = ''
+
+                            upload_success_html = f"""<div style="background-color: #1e293b; border: 1px solid {border_color}; border-radius: 12px; padding: 1.5rem; margin-top: 1rem; color: #f8fafc; font-size: 1rem;">
+{title_html}
 <p style="margin-bottom: 0.8rem;"><strong style="color:#94a3b8;">Hash:</strong> <code style="color:#38bdf8; background:transparent; font-size: 1rem;">{cid}</code></p>
-<p style="margin-bottom: 0.8rem;"><strong style="color:#94a3b8;">Verdict:</strong> <span style="color:{'#ef4444' if verdict=='Fake' else '#22c55e'}; font-weight:bold; font-size: 1.1rem;">{verdict}</span> ({conf}%)</p>
+<p style="margin-bottom: 0.8rem;"><strong style="color:#94a3b8;">Verdict:</strong> <span style="color:{'#ef4444' if verdict.lower()=='fake' else '#22c55e'}; font-weight:bold; font-size: 1.1rem;">{verdict}</span> ({conf}%)</p>
 <p style="margin-bottom: 0;"><strong style="color:#94a3b8;">TX:</strong> <code style="color:#38bdf8; background:transparent; font-size: 1rem;">{tx_hash}</code></p>
 </div>"""
                             st.markdown(upload_success_html, unsafe_allow_html=True)
+                        else:
+                            st.error(f"❌ Blockchain Transaction Failed! Error: {tx_hash}")
+                            st.warning("If this says 'Unauthorized', it means you need to go to Remix and authorize this hospital's address using the Admin account before you can upload.")
 
 with tab_verify:
     st.markdown("<h2 style='text-align: center; padding-top: 2rem;'>Verify Scan Integrity</h2>", unsafe_allow_html=True)

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 contract MedicalAudit {
-    address public owner;
+    address public admin;
 
     struct ScanReport {
         string ipfsHash;
@@ -12,17 +12,31 @@ contract MedicalAudit {
     }
 
     mapping(string => ScanReport) public reports;
-    string[] public allHashes;  
+    string[] public allHashes;
+    mapping(address => bool) public authorizedHospitals;
+    
     event ReportAdded(string ipfsHash, string verdict, uint256 timestamp);
+    
     constructor() {
-        owner = msg.sender; 
+        admin = msg.sender; 
+        authorizedHospitals[msg.sender] = true; 
     }
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Unauthorized: Only the hospital server can add reports");
+    
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "Only Admin can authorize new hospitals");
         _;
     }
 
-    function addReport(string memory _hash, string memory _verdict, uint256 _conf) public onlyOwner {
+    modifier onlyAuthorized() {
+        require(authorizedHospitals[msg.sender] == true, "Unauthorized: Not a verified clinical node");
+        _;
+    }
+
+    function authorizeHospital(address _hospitalAddress) public onlyAdmin {
+        authorizedHospitals[_hospitalAddress] = true;
+    }
+
+    function addReport(string memory _hash, string memory _verdict, uint256 _conf) public onlyAuthorized {
         require(reports[_hash].timestamp == 0, "Report already exists for this scan");
 
         reports[_hash] = ScanReport(_hash, _verdict, _conf, block.timestamp);

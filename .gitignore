@@ -4,3 +4,4 @@ __pycache__/
 datasets/
 ml_layer/*.pth
 .env
+keystore.json

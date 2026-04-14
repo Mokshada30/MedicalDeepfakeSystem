@@ -30,6 +30,10 @@ hospital_directory = {
     "Hospital C": {
         "address": os.getenv("HOSPITAL_C_ADDRESS"),
         "key": os.getenv("HOSPITAL_C_KEY")
+    },
+    "Hospital D": {
+        "address": os.getenv("HOSPITAL_D_ADDRESS"),
+        "key": os.getenv("HOSPITAL_D_KEY")
     }
 }
 
@@ -243,7 +247,7 @@ with tab_verify:
                 history = get_history()
                 match = next((r for r in history if r[0] == search_hash), None)
                 if match:
-                    # 1. The Blockchain Proof
+                   
                     verify_success_html = f"""<div style="background: #1e293b; border: 1px solid #22c55e; border-radius: 12px; padding: 2.5rem; text-align: center;">
 <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
 <h2 style="color: white; margin: 0;">Integrity Confirmed</h2>
@@ -257,31 +261,31 @@ with tab_verify:
 </div>"""
                     st.markdown(verify_success_html, unsafe_allow_html=True)
 
-                    # 2. The Encryption Demo View
+                    
                     st.markdown("<h3 style='color: white; margin-top: 2rem; text-align: center;'>🔒 Cryptographic Verification</h3>", unsafe_allow_html=True)
                     
                     col_sec1, col_sec2 = st.columns(2)
                     
                     try:
-                        # Fetch the raw scrambled data from IPFS
+                        
                         enc_data = ipfs.cat(search_hash)
                         
                         with col_sec1:
                             st.error("🚨 Attacker's View (Raw IPFS Data)")
                             st.markdown("<p style='font-size: 0.85rem; color: #94a3b8;'>What a malicious actor sees if they intercept the public IPFS Hash.</p>", unsafe_allow_html=True)
                             
-                            # Show a snippet of the scrambled data
+                           
                             st.code(str(enc_data[:300]) + "...\n\n[DATA UNREADABLE]", language="text")
                             
                         with col_sec2:
                             st.success("🏥 Hospital View (Decrypted)")
                             st.markdown("<p style='font-size: 0.85rem; color: #94a3b8;'>Using the secure environment key, the payload is fully restored.</p>", unsafe_allow_html=True)
                             
-                            # Decrypt it using the helper function
-                            decrypted_bytes = decrypt_scan(enc_data)
+                            
+                            decrypted_bytes = decrypt_scan(enc_data, current_sender)
                             
                             if decrypted_bytes:
-                                # Convert the bytes back to a viewable image
+                                
                                 verified_img = Image.open(io.BytesIO(decrypted_bytes))
                                 st.image(verified_img, caption="Restored Medical Scan", use_container_width=True)
                             else:

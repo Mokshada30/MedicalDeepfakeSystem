@@ -6,6 +6,7 @@ import os
 import time
 from web3.middleware import ExtraDataToPOAMiddleware
 from dotenv import load_dotenv
+from cryptography.fernet import Fernet
 
 load_dotenv()
 
@@ -24,18 +25,46 @@ with open('blockchain_layer/ABI.json') as f:
     CONTRACT_ABI = json.load(f)
 contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
 
+
+ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
+if ENCRYPTION_KEY:
+    cipher = Fernet(ENCRYPTION_KEY.encode())
+else:
+    print("⚠️ WARNING: ENCRYPTION_KEY not found in .env file!")
+
+
+
 def process_scan(img_path, sender_addr, private_key):
     try:
         sender_addr = Web3.to_checksum_address(sender_addr)
         
+   
         verdict, conf = get_prediction(img_path)
         
-        with open(img_path, "ab") as f:
-            f.write(str(time.time()).encode())
+
+        with open(img_path, "rb") as f:
+            raw_data = f.read()
             
-        res = ipfs.add(img_path)
+
+        unique_raw_data = raw_data + str(time.time()).encode()
+            
+   
+        encrypted_data = cipher.encrypt(unique_raw_data)
+        
+
+        enc_path = img_path + ".enc"
+        with open(enc_path, "wb") as f:
+            f.write(encrypted_data)
+            
+
+        res = ipfs.add(enc_path)
         cid = res['Hash']
 
+
+        if os.path.exists(enc_path):
+            os.remove(enc_path)
+
+        # Record the CID of the encrypted file
         nonce = w3.eth.get_transaction_count(sender_addr)
         base_txn = contract.functions.addReport(cid, verdict, conf).build_transaction({
             'chainId': 1337,
@@ -63,6 +92,16 @@ def process_scan(img_path, sender_addr, private_key):
     except Exception as e:
         print(f"Pipeline failed: {e}")
         return None, None, None, str(e)
+
+def decrypt_scan(encrypted_bytes):
+    """Decrypts raw bytes fetched from IPFS back into viewable image bytes."""
+    try:
+        decrypted_data = cipher.decrypt(encrypted_bytes)
+        return decrypted_data
+    except Exception as e:
+        print(f"Decryption failed: {e}")
+        return None
+
 
 def process_ct_folder(root_dir):
     for subdir, dirs, files in os.walk(root_dir):

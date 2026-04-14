@@ -4,7 +4,8 @@ import time
 import numpy as np
 import pandas as pd
 from PIL import Image
-from main import process_scan, contract, ipfs
+import io
+from main import process_scan, contract, ipfs, decrypt_scan 
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -199,11 +200,11 @@ with tab_upload:
                 st.image(uploaded_file, use_container_width=True)
                 processing_path = temp_path
 
-            if st.button("Upload", type="primary", use_container_width=True):
+            if st.button("Upload & Encrypt Data", type="primary", use_container_width=True):
                 if not is_connected:
                     st.error("Cannot process: Ganache is offline. Please start your local blockchain.")
                 else:
-                    with st.spinner("Analyzing textures..."):
+                    with st.spinner("Analyzing textures and Encrypting Payload..."):
                         verdict, conf, cid, tx_hash = process_scan(processing_path, current_sender, current_key)
                         
                         if verdict:
@@ -212,15 +213,15 @@ with tab_upload:
                                 border_color = "#ef4444"
                                 title_html = '<h4 style="color: #ef4444; margin-top: 0; margin-bottom: 1rem;">🚨 Malicious Payload Captured</h4>'
                             else:
-                                st.success("✅ Analysis Complete")
+                                st.success("✅ Analysis Complete & Encrypted")
                                 border_color = "#334155"
                                 title_html = ''
 
                             upload_success_html = f"""<div style="background-color: #1e293b; border: 1px solid {border_color}; border-radius: 12px; padding: 1.5rem; margin-top: 1rem; color: #f8fafc; font-size: 1rem;">
 {title_html}
-<p style="margin-bottom: 0.8rem;"><strong style="color:#94a3b8;">Hash:</strong> <code style="color:#38bdf8; background:transparent; font-size: 1rem;">{cid}</code></p>
+<p style="margin-bottom: 0.8rem;"><strong style="color:#94a3b8;">Encrypted Hash (CID):</strong> <code style="color:#38bdf8; background:transparent; font-size: 1rem;">{cid}</code></p>
 <p style="margin-bottom: 0.8rem;"><strong style="color:#94a3b8;">Verdict:</strong> <span style="color:{'#ef4444' if verdict.lower()=='fake' else '#22c55e'}; font-weight:bold; font-size: 1.1rem;">{verdict}</span> ({conf}%)</p>
-<p style="margin-bottom: 0;"><strong style="color:#94a3b8;">TX:</strong> <code style="color:#38bdf8; background:transparent; font-size: 1rem;">{tx_hash}</code></p>
+<p style="margin-bottom: 0;"><strong style="color:#94a3b8;">Blockchain TX:</strong> <code style="color:#38bdf8; background:transparent; font-size: 1rem;">{tx_hash}</code></p>
 </div>"""
                             st.markdown(upload_success_html, unsafe_allow_html=True)
                         else:
@@ -229,28 +230,65 @@ with tab_upload:
 
 with tab_verify:
     st.markdown("<h2 style='text-align: center; padding-top: 2rem;'>Verify Scan Integrity</h2>", unsafe_allow_html=True)
-    col_v1, col_v_main, col_v2 = st.columns([1, 2, 1])
+    st.markdown("<p style='text-align: center; color:#94a3b8;'>Enter the IPFS Hash to audit the record and decrypt the medical image.</p>", unsafe_allow_html=True)
+    
+    col_v1, col_v_main, col_v2 = st.columns([1, 4, 1])
+    
     with col_v_main:
         search_hash = st.text_input("Enter Clinical Hash (CID)")
-        if st.button("Verify Integrity", type="primary", use_container_width=True):
+        if st.button("Audit & Decrypt Record", type="primary", use_container_width=True):
             if not is_connected:
                 st.error("Cannot verify: Ganache is offline. Please start your local blockchain.")
             elif search_hash:
                 history = get_history()
                 match = next((r for r in history if r[0] == search_hash), None)
                 if match:
+                    # 1. The Blockchain Proof
                     verify_success_html = f"""<div style="background: #1e293b; border: 1px solid #22c55e; border-radius: 12px; padding: 2.5rem; text-align: center;">
 <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
 <h2 style="color: white; margin: 0;">Integrity Confirmed</h2>
-<p style="color: #94a3b8;">This scan matches the original clinical record.</p>
+<p style="color: #94a3b8;">This scan matches the original clinical record stored on the blockchain.</p>
 
 <div style="text-align: left; margin-top: 2rem; padding: 1.5rem; background-color: #0f172a; border-radius: 8px; border: 1px solid #334155; font-size: 1rem;">
-<p style="margin-bottom: 0.8rem;"><strong style="color:#94a3b8;">Hash:</strong> <code style="color:#38bdf8; background:transparent; font-size: 1rem;">{match[0]}</code></p>
+<p style="margin-bottom: 0.8rem;"><strong style="color:#94a3b8;">Hash (CID):</strong> <code style="color:#38bdf8; background:transparent; font-size: 1rem;">{match[0]}</code></p>
 <p style="margin-bottom: 0.8rem;"><strong style="color:#94a3b8;">Original AI Analysis:</strong> <strong style="color:white; font-size: 1.1rem;">{match[1]}</strong> <span style="color:white;">({match[2]}% Confidence)</span></p>
 <p style="margin-bottom: 0;"><strong style="color:#94a3b8;">Smart Contract:</strong> <code style="color:#38bdf8; background:transparent; font-size: 1rem;">{contract.address}</code></p>
 </div>
 </div>"""
                     st.markdown(verify_success_html, unsafe_allow_html=True)
+
+                    # 2. The Encryption Demo View
+                    st.markdown("<h3 style='color: white; margin-top: 2rem; text-align: center;'>🔒 Cryptographic Verification</h3>", unsafe_allow_html=True)
+                    
+                    col_sec1, col_sec2 = st.columns(2)
+                    
+                    try:
+                        # Fetch the raw scrambled data from IPFS
+                        enc_data = ipfs.cat(search_hash)
+                        
+                        with col_sec1:
+                            st.error("🚨 Attacker's View (Raw IPFS Data)")
+                            st.markdown("<p style='font-size: 0.85rem; color: #94a3b8;'>What a malicious actor sees if they intercept the public IPFS Hash.</p>", unsafe_allow_html=True)
+                            
+                            # Show a snippet of the scrambled data
+                            st.code(str(enc_data[:300]) + "...\n\n[DATA UNREADABLE]", language="text")
+                            
+                        with col_sec2:
+                            st.success("🏥 Hospital View (Decrypted)")
+                            st.markdown("<p style='font-size: 0.85rem; color: #94a3b8;'>Using the secure environment key, the payload is fully restored.</p>", unsafe_allow_html=True)
+                            
+                            # Decrypt it using the helper function
+                            decrypted_bytes = decrypt_scan(enc_data)
+                            
+                            if decrypted_bytes:
+                                # Convert the bytes back to a viewable image
+                                verified_img = Image.open(io.BytesIO(decrypted_bytes))
+                                st.image(verified_img, caption="Restored Medical Scan", use_container_width=True)
+                            else:
+                                st.error("Decryption Failed: Invalid or missing Private Key.")
+                                
+                    except Exception as e:
+                        st.error(f"IPFS Retrieval Failed. Is your local IPFS node running? Error: {e}")
                 else:
                     st.error("Audit Failed: No matching record found in the Blockchain.")
             else:

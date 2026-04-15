@@ -16,6 +16,7 @@ CONTRACT_ADDRESS = Web3.to_checksum_address(os.getenv("CONTRACT_ADDRESS"))
 w3 = Web3(Web3.HTTPProvider(GANACHE_URL, request_kwargs={'timeout': 60}))
 w3.middleware_onion.inject(ExtraDataToPOAMiddleware, layer=0)
 
+ipfs = None
 try:
     ipfs = ipfshttpclient.connect('/ip4/127.0.0.1/tcp/5001')
 except Exception as e:
@@ -26,8 +27,8 @@ with open('blockchain_layer/ABI.json') as f:
 contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
 
 
-def get_hospital_cipher(sender_addr):
-    """Fetches the unique AES key for the specific hospital from keystore."""
+def get_node_cipher(sender_addr):
+    """Fetches the unique AES key for the specific node from keystore."""
     with open('keystore.json', 'r') as f:
         keystore = json.load(f)
     key = keystore.get(sender_addr)
@@ -46,8 +47,7 @@ def process_scan(img_path, sender_addr, private_key):
 
         unique_raw_data = raw_data + str(time.time()).encode()
         
-        # Encrypt using the specific hospital's key
-        cipher = get_hospital_cipher(sender_addr)
+        cipher = get_node_cipher(sender_addr)
         encrypted_data = cipher.encrypt(unique_raw_data)
         
         enc_path = img_path + ".enc"
@@ -90,13 +90,13 @@ def process_scan(img_path, sender_addr, private_key):
 
 
 def decrypt_scan(encrypted_bytes, sender_addr):
-    """Decrypts bytes using the specific hospital's private AES key."""
+    """Decrypts bytes using the specific node's private AES key."""
     try:
         sender_addr = Web3.to_checksum_address(sender_addr)
-        cipher = get_hospital_cipher(sender_addr)
+        cipher = get_node_cipher(sender_addr)
         return cipher.decrypt(encrypted_bytes)
     except InvalidToken:
-        # This catches the exact moment an unauthorized hospital tries to read the file!
+
         print("Access Denied: Invalid cryptographic key.")
         return None
     except Exception as e:

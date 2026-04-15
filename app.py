@@ -18,33 +18,33 @@ if 'active_tab' not in st.session_state:
 st.sidebar.markdown("<h2 style='text-align: center;'>🏥 Network Node</h2>", unsafe_allow_html=True)
 st.sidebar.markdown("<p style='text-align: center; color: #94a3b8; font-size: 0.9rem;'>Simulate identity switching on the shared consortium ledger.</p>", unsafe_allow_html=True)
 
-hospital_directory = {
-    "Hospital A (Admin)": {
-        "address": os.getenv("HOSPITAL_A_ADDRESS"),
-        "key": os.getenv("HOSPITAL_A_KEY")
+node_directory = {
+    "node A (Admin)": {
+        "address": os.getenv("node_A_ADDRESS"),
+        "key": os.getenv("node_A_KEY")
     },
-    "Hospital B": {
-        "address": os.getenv("HOSPITAL_B_ADDRESS"),
-        "key": os.getenv("HOSPITAL_B_KEY")
+    "node B": {
+        "address": os.getenv("node_B_ADDRESS"),
+        "key": os.getenv("node_B_KEY")
     },
-    "Hospital C": {
-        "address": os.getenv("HOSPITAL_C_ADDRESS"),
-        "key": os.getenv("HOSPITAL_C_KEY")
+    "node C": {
+        "address": os.getenv("node_C_ADDRESS"),
+        "key": os.getenv("node_C_KEY")
     },
-    "Hospital D": {
-        "address": os.getenv("HOSPITAL_D_ADDRESS"),
-        "key": os.getenv("HOSPITAL_D_KEY")
+    "node D": {
+        "address": os.getenv("node_D_ADDRESS"),
+        "key": os.getenv("node_D_KEY")
     }
 }
 
-active_hospital = st.sidebar.selectbox("Select Active Identity:", list(hospital_directory.keys()))
+active_node = st.sidebar.selectbox("Select Active Identity:", list(node_directory.keys()))
 
-current_sender = hospital_directory[active_hospital]["address"]
-current_key = hospital_directory[active_hospital]["key"]
+current_sender = node_directory[active_node]["address"]
+current_key = node_directory[active_node]["key"]
 
-st.sidebar.success(f"🟢 Connected as {active_hospital}")
+st.sidebar.success(f"🟢 Connected as {active_node}")
 st.sidebar.markdown("---")
-st.sidebar.markdown("<div style='font-size: 0.8rem; color: #64748b;'>All hospitals interact with the same underlying smart contract, enforcing a single source of truth.</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-size: 0.8rem; color: #64748b;'>All nodes interact with the same underlying smart contract, enforcing a single source of truth.</div>", unsafe_allow_html=True)
 
 st.markdown("""
 <style>
@@ -230,7 +230,7 @@ with tab_upload:
                             st.markdown(upload_success_html, unsafe_allow_html=True)
                         else:
                             st.error(f"❌ Blockchain Transaction Failed! Error: {tx_hash}")
-                            st.warning("If this says 'Unauthorized', it means you need to go to Remix and authorize this hospital's address using the Admin account before you can upload.")
+                            st.warning("If this says 'Unauthorized', it means you need to go to Remix and authorize this node's address using the Admin account before you can upload.")
 
 with tab_verify:
     st.markdown("<h2 style='text-align: center; padding-top: 2rem;'>Verify Scan Integrity</h2>", unsafe_allow_html=True)
@@ -278,7 +278,7 @@ with tab_verify:
                             st.code(str(enc_data[:300]) + "...\n\n[DATA UNREADABLE]", language="text")
                             
                         with col_sec2:
-                            st.success("🏥 Hospital View (Decrypted)")
+                            st.success("🏥 Authorised node View (Decrypted)")
                             st.markdown("<p style='font-size: 0.85rem; color: #94a3b8;'>Using the secure environment key, the payload is fully restored.</p>", unsafe_allow_html=True)
                             
                             

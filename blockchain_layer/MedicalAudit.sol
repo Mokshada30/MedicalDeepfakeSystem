@@ -4,52 +4,59 @@ pragma solidity ^0.8.0;
 contract MedicalAudit {
     address public admin;
 
-    struct ScanReport {
-        string ipfsHash;
-        string verdict;    
-        uint256 confidence; 
+    struct Report {
+        string cid;
+        string verdict;
+        uint256 confidence;
         uint256 timestamp;
+        address nodeAddress; 
     }
+    Report[] public allReports;
+    
+    mapping(address => bool) public authorizedNodes;
 
-    mapping(string => ScanReport) public reports;
-    string[] public allHashes;
-    mapping(address => bool) public authorizedHospitals;
-    
-    event ReportAdded(string ipfsHash, string verdict, uint256 timestamp);
-    
-    constructor() {
-        admin = msg.sender; 
-        authorizedHospitals[msg.sender] = true; 
-    }
-    
+    event ReportAdded(string cid, string verdict, uint256 confidence, uint256 timestamp, address indexed nodeAddress);
+    event NodeAuthorized(address indexed nodeAddress);
+    event NodeRevoked(address indexed nodeAddress);
+
     modifier onlyAdmin() {
-        require(msg.sender == admin, "Only Admin can authorize new hospitals");
+        require(msg.sender == admin, "Only admin can perform this action");
         _;
     }
 
-    modifier onlyAuthorized() {
-        require(authorizedHospitals[msg.sender] == true, "Unauthorized: Not a verified clinical node");
+    modifier onlyAuthorizedNode() {
+        require(authorizedNodes[msg.sender], "Unauthorized Node");
         _;
     }
 
-    function authorizeHospital(address _hospitalAddress) public onlyAdmin {
-        authorizedHospitals[_hospitalAddress] = true;
+    constructor() {
+        admin = msg.sender;
+        authorizedNodes[msg.sender] = true; 
     }
 
-    function addReport(string memory _hash, string memory _verdict, uint256 _conf) public onlyAuthorized {
-        require(reports[_hash].timestamp == 0, "Report already exists for this scan");
-
-        reports[_hash] = ScanReport(_hash, _verdict, _conf, block.timestamp);
-        allHashes.push(_hash); 
-
-        emit ReportAdded(_hash, _verdict, block.timestamp);
+    function authorizeNode(address _node) public onlyAdmin {
+        authorizedNodes[_node] = true;
+        emit NodeAuthorized(_node);
     }
 
-    function getAllReports() public view returns (ScanReport[] memory) {
-        ScanReport[] memory allData = new ScanReport[](allHashes.length);
-        for (uint i = 0; i < allHashes.length; i++) {
-            allData[i] = reports[allHashes[i]];
-        }
-        return allData;
+    function revokeNode(address _node) public onlyAdmin {
+        authorizedNodes[_node] = false;
+        emit NodeRevoked(_node);
+    }
+
+    function addReport(string memory _cid, string memory _verdict, uint256 _confidence) public onlyAuthorizedNode {
+        allReports.push(Report({
+            cid: _cid,
+            verdict: _verdict,
+            confidence: _confidence,
+            timestamp: block.timestamp,
+            nodeAddress: msg.sender
+        }));
+        
+        emit ReportAdded(_cid, _verdict, _confidence, block.timestamp, msg.sender);
+    }
+
+    function getAllReports() public view returns (Report[] memory) {
+        return allReports;
     }
 }

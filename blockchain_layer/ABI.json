@@ -3,7 +3,7 @@
     "inputs": [
       {
         "internalType": "string",
-        "name": "_hash",
+        "name": "_cid",
         "type": "string"
       },
       {
@@ -13,7 +13,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "_conf",
+        "name": "_confidence",
         "type": "uint256"
       }
     ],
@@ -26,11 +26,11 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_hospitalAddress",
+        "name": "_node",
         "type": "address"
       }
     ],
-    "name": "authorizeHospital",
+    "name": "authorizeNode",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -44,9 +44,35 @@
     "anonymous": false,
     "inputs": [
       {
+        "indexed": true,
+        "internalType": "address",
+        "name": "nodeAddress",
+        "type": "address"
+      }
+    ],
+    "name": "NodeAuthorized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "nodeAddress",
+        "type": "address"
+      }
+    ],
+    "name": "NodeRevoked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": false,
         "internalType": "string",
-        "name": "ipfsHash",
+        "name": "cid",
         "type": "string"
       },
       {
@@ -58,12 +84,37 @@
       {
         "indexed": false,
         "internalType": "uint256",
+        "name": "confidence",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
         "name": "timestamp",
         "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "nodeAddress",
+        "type": "address"
       }
     ],
     "name": "ReportAdded",
     "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_node",
+        "type": "address"
+      }
+    ],
+    "name": "revokeNode",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
     "inputs": [],
@@ -86,12 +137,32 @@
         "type": "uint256"
       }
     ],
-    "name": "allHashes",
+    "name": "allReports",
     "outputs": [
       {
         "internalType": "string",
-        "name": "",
+        "name": "cid",
         "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "verdict",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "confidence",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "nodeAddress",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -105,7 +176,7 @@
         "type": "address"
       }
     ],
-    "name": "authorizedHospitals",
+    "name": "authorizedNodes",
     "outputs": [
       {
         "internalType": "bool",
@@ -124,7 +195,7 @@
         "components": [
           {
             "internalType": "string",
-            "name": "ipfsHash",
+            "name": "cid",
             "type": "string"
           },
           {
@@ -141,45 +212,16 @@
             "internalType": "uint256",
             "name": "timestamp",
             "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "nodeAddress",
+            "type": "address"
           }
         ],
-        "internalType": "struct MedicalAudit.ScanReport[]",
+        "internalType": "struct MedicalAudit.Report[]",
         "name": "",
         "type": "tuple[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
-      }
-    ],
-    "name": "reports",
-    "outputs": [
-      {
-        "internalType": "string",
-        "name": "ipfsHash",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "verdict",
-        "type": "string"
-      },
-      {
-        "internalType": "uint256",
-        "name": "confidence",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
       }
     ],
     "stateMutability": "view",

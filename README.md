@@ -36,6 +36,7 @@ MedicalDeepfakeSystem/
 ├── keystore.json                 # Localized AES-256 symmetric keys for decryption
 ├── requirements.txt              # Python dependencies
 └── README.md
+```
 🚀 How to Run Locally
 1. Prerequisites
 Ensure you have Python 3.10+, Ganache (Local RPC), and IPFS Desktop installed and running on your machine.

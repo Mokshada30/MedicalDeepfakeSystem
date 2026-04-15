@@ -42,29 +42,32 @@ Ensure you have Python 3.10+, Ganache (Local RPC), and IPFS Desktop installed an
 
 2. Setup Virtual Environment
 Bash
-
+```
 python -m venv venv
 source venv/Scripts/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
+```
 3. Environment & Cryptographic Setup
 Create a .env file in the root directory to store your Ganache RPC details and the specific Ethereum addresses/private keys for your simulated clinical nodes:
 
 Code snippet
-
+```
 GANACHE_URL="[http://127.0.0.1:7545](http://127.0.0.1:7545)"
 CONTRACT_ADDRESS="Your_Deployed_Contract_Address" 
 
 NODE_A_ADDRESS="0x..."
 NODE_A_KEY="0x..."
+```
 # Add details for NODE_B, NODE_C, and NODE_D
 Create a keystore.json file in the root directory to store the localized AES-256 symmetric encryption keys for each node:
 
 JSON
-
+```
 {
     "0xNodeAAddress...": "Your_Generated_Fernet_Key_1=",
     "0xNodeBAddress...": "Your_Generated_Fernet_Key_2="
 }
+```
 4. Blockchain Configuration (Smart Contract Deployment)
 Open Remix IDE and compile MedicalAudit.sol.
 
@@ -78,8 +81,9 @@ In Remix, use the Admin account to call the authorizeNode function to whitelist 
 
 5. Launch the Application
 Bash
-
+```
 streamlit run app.py
+``` 
 Use the sidebar to switch between authorized clinical nodes. Upload a .png, .jpg, or .npy file to initiate the AI verification and cryptographic registration pipeline.
 
 🧠 Model Training Details
